@@ -65,6 +65,41 @@
       gap: 10px;
     }
 
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .toggle-button {
+      flex: 1;
+      padding: 10px 12px;
+      background: #6c5ce7;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-button:hover {
+      background: #574ac9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #2a9d8f;
+      color: #fff;
+      font-size: 12px;
+      min-width: 40px;
+      text-align: center;
+    }
+
     button {
       padding: 10px 15px;
       background: #2a9d8f;
@@ -108,11 +143,18 @@
       只有當主人使用裸視3D能力時，<br>
       才有辦法抓到這隻搗蛋鬼！！！
     </div>
+   
     <div class="menu-buttons">
       <button data-image="data/final_gray.png">場景一</button>
       <button data-image="data/final_leopard.png">場景二</button>
-      <button data-image="data/final_orange.png">場景三</button>
+      <button data-image="data/final_orange_2.png">場景三</button>
+      <br>
     </div>
+    
+     <div class="toggle-row">
+      <button id="glassesBtn" class="toggle-button" aria-pressed="false">🕶️ Magic Glasses</button>
+    </div>
+    <div id="imageInfo"></div>
   </div>
 
   <canvas id="glslCanvas" data-fragment-url="shaders/magiceye.frag" width="800" height="600"></canvas>
@@ -121,41 +163,39 @@
     var canvas = document.getElementById("glslCanvas");
     var sandbox = new GlslCanvas(canvas);
     var currentImage = "data/final_gray.png";
-    var currentImageName = "灰色圖";
+    var currentImageName = "場景一";
+    var glassesOn = false;
+
+    var imageInfoEl = document.getElementById("imageInfo");
+    var glassesBtn = document.getElementById("glassesBtn");
+    var glassesState = document.getElementById("glassesState");
+
+    const sceneMap = {
+      "data/final_gray.png": { base: "data/final_gray.png", got: "data/final_gray_got.png" },
+      "data/final_leopard.png": { base: "data/final_leopard.png", got: "data/final_leopard.got.png" },
+      "data/final_orange_2.png": { base: "data/final_orange_2.png", got: "data/final_orange_2_got.png" }
+    };
+
+    var currentScene = sceneMap[currentImage];
 
     // 設定初始紋理
     sandbox.setUniform("u_resolution", canvas.width, canvas.height);
-    sandbox.loadTexture("u_texture", currentImage);
 
-    // 自適應視窗大小
-    window.addEventListener('resize', function() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      sandbox.setUniform("u_resolution", canvas.width, canvas.height);
-    });
-
-    // 初始化按鈕和事件
-    const buttons = document.querySelectorAll('button');
-    buttons[0].classList.add('active');
-
-    buttons.forEach((button, index) => {
-      button.addEventListener('click', function() {
-        const imagePath = this.getAttribute('data-image');
-        const imageName = this.textContent;
-        
-        // 更新按鈕樣式
-        buttons.forEach(btn => btn.classList.remove('active'));
-        this.classList.add('active');
-
-        // 載入新圖片
-        currentImage = imagePath;
-        currentImageName = imageName;
-        sandbox.loadTexture("u_texture", imagePath);
-        
-        // 更新顯示的圖片資訊
-        document.getElementById('imageInfo').textContent = '目前: ' + imageName;
-      });
-    });
+    function applyTexture() {
+      var scene = currentScene || { base: currentImage, got: currentImage };
+      var target = glassesOn && scene.got ? scene.got : scene.base;
+      sandbox.loadTexture("u_texture", target);
+      if (imageInfoEl) {
+        imageInfoEl.textContent = '目前: ' + currentImageName + (glassesOn ? '（Magic Glasses 開）' : '（裸視）');
+      }
+      if (glassesState) {
+        glassesState.textContent = glassesOn ? 'ON' : 'OFF';
+      }
+      if (glassesBtn) {
+        glassesBtn.textContent = glassesOn ? '🕶️ Magic Glasses ON' : '🕶️ Magic Glasses OFF';
+        glassesBtn.setAttribute('aria-pressed', glassesOn ? 'true' : 'false');
+      }
+    }
 
     // 設定 canvas 填滿整個視窗
     function resizeCanvas() {
@@ -166,6 +206,41 @@
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+
+    // 初始化場景按鈕與魔法眼鏡按鈕
+    const sceneButtons = document.querySelectorAll('.menu-buttons button');
+    if (sceneButtons.length > 0) {
+      sceneButtons[0].classList.add('active');
+    }
+
+    sceneButtons.forEach((button) => {
+      button.addEventListener('click', function() {
+        const imagePath = this.getAttribute('data-image');
+        const imageName = this.textContent;
+
+        // 更新按鈕樣式
+        sceneButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+
+        // 更新場景資訊
+        currentImage = imagePath;
+        currentImageName = imageName;
+        currentScene = sceneMap[imagePath] || { base: imagePath, got: imagePath };
+
+        // 依據當前眼鏡狀態套用貼圖
+        applyTexture();
+      });
+    });
+
+    if (glassesBtn) {
+      glassesBtn.addEventListener('click', function() {
+        glassesOn = !glassesOn;
+        applyTexture();
+      });
+    }
+
+    // 首次載入貼圖
+    applyTexture();
   </script>
 
 </body>
