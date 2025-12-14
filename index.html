@@ -227,6 +227,9 @@
         currentImageName = imageName;
         currentScene = sceneMap[imagePath] || { base: imagePath, got: imagePath };
 
+        // 切換場景時自動關閉 Magic Glasses
+        glassesOn = false;
+
         // 依據當前眼鏡狀態套用貼圖
         applyTexture();
       });
